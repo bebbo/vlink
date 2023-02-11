@@ -1,8 +1,8 @@
-/* $VER: vlink t_vobj.c V0.16h (09.03.21)
+/* $VER: vlink t_vobj.c V0.17a (30.03.22)
  *
  * This file is part of vlink, a portable linker for multiple
  * object formats.
- * Copyright (c) 1997-2021 Frank Wille
+ * Copyright (c) 1997-2022 Frank Wille
  */
 
 #include "config.h"
@@ -257,7 +257,7 @@ static void vobj_check_ar_type(struct GlobalVars *gv,struct FFFuncs *ff,
 
   p = dat;
   if (p[0]==0x56 && p[1]==0x4f && p[2]==0x42 && p[3]==0x4a &&
-      p[4]==(ff->endianess ? 1 : 2)) {
+      p[4]==(ff->endianness ? 1 : 2)) {
     p += 5;
     bpb = (int)read_number(0);  /* bits per byte */
     if ((bpb & 7) != 0) {
@@ -363,7 +363,7 @@ static void read_section(struct GlobalVars *gv,struct ObjectUnit *u,
     sym_idx = (int)read_number(0) - 1;  /* symbol index */
     flags = 0;
 
-    if (type>R_NONE && type<=LAST_STANDARD_RELOC &&
+    if (type>=R_NONE && type<=LAST_STANDARD_RELOC &&
         offs>=0 && bsiz<=(sizeof(lword)<<3) &&
         sym_idx>=0 && sym_idx<nsyms) {
       if (vsyms[sym_idx].flags & WEAK) {
@@ -425,7 +425,7 @@ static void vobj_read(struct GlobalVars *gv,struct LinkFile *lf,uint8_t *data)
   if (lf->type == ID_LIBARCH) {  /* check ar-member for correct format */
     vobj_check_ar_type(gv,fff[lf->format],lf->pathname,data);
   }
-  p = data + 5;  /* skip ID and endianess */
+  p = data + 5;  /* skip ID and endianness */
 
   /* skip bits per byte and bytes per address */
   read_number(0);

@@ -188,7 +188,7 @@ static uint16_t modname_address(struct GlobalVars *gv,uint16_t defval)
 
 
 static void checkPIC(struct LinkedSection *ls)
-/* check that section has position independant code, no absolute relocs */
+/* check that section has position independent code, no absolute relocs */
 {
 #if 0  /* @@@ cannot be checked easily, as ABS,y must be allowed! */
   struct Reloc *r;
@@ -303,7 +303,7 @@ static void writeobject(struct GlobalVars *gv,FILE *f)
 
 
 static void writeexec_6809(struct GlobalVars *gv,FILE *f)
-/* creates an OS9/6809 module (which is position independant and reentrant) */
+/* creates an OS9/6809 module (which is position independent and reentrant) */
 {
   struct list dtrefs,ddrefs;
   unsigned dtrefcnt,ddrefcnt;
@@ -337,7 +337,7 @@ static void writeexec_6809(struct GlobalVars *gv,FILE *f)
     }
   }
 
-  /* write position-independant code sections, including module header */
+  /* write position-independent code sections, including module header */
   lma = 0;
   while ((ls=load_next_section(gv))!=NULL && ls->type==ST_CODE) {
     if (lma==0 && ls->copybase<sizeof(mh6809))
@@ -377,7 +377,7 @@ static void writeexec_6809(struct GlobalVars *gv,FILE *f)
               || (ri->mask & rmask)!=rmask)
             error(32,fff_os9_6809.tname,reloc_name[rel->rtype],
                   (int)rel->insert->bpos,(int)rel->insert->bsiz,
-                  (unsigned long long)rel->insert->mask,ls->name,rel->offset);
+                  mtaddr(gv,rel->insert->mask),ls->name,rel->offset);
 
           remnode(&rel->n);
           writesection(gv,ls->data,rel->offset,rel,

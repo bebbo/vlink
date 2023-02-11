@@ -67,7 +67,7 @@ struct FFFuncs fff_rawseg = {
   0,
   0,
   RTAB_UNDEF,0,
-  -1,   /* endianess undefined, only write */
+  -1,   /* endianness undefined, only write */
   0,0   /* addr_bits from input */
 };
 #endif
@@ -168,7 +168,7 @@ static void rawseg_writeexec(struct GlobalVars *gv,FILE *f)
                   /* only abs. relocs with target addr size are supported */
                   error(32,fff_rawseg.tname,reloc_name[r->rtype],
                         (int)ri->bpos,(int)ri->bsiz,
-                        (unsigned long long)ri->mask,ls->name,r->offset);
+                        mtaddr(gv,ri->mask),ls->name,r->offset);
                   continue;
                 }
               }

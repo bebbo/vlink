@@ -215,7 +215,7 @@ static void tos_symboltable(struct GlobalVars *gv,FILE *f,
             t |= STYP_GLOBAL;
 
           write_dri_sym(f,sym->name,t,val);
-          /* FIXME: symbols in DRI objects do not sypport long names. */
+          /* FIXME: symbols in DRI objects do not support long names. */
         }
       }
 
@@ -239,7 +239,7 @@ static void tos_symboltable(struct GlobalVars *gv,FILE *f,
                     or reference for the 32-bit longword at this position. */
 
           write_dri_sym(f,xref->xrefname,STYP_DEFINED|STYP_EXTERNAL,0);
-          /* FIXME: external symbols do not sypport long names and must
+          /* FIXME: external symbols do not support long names and must
              only appear once! */
         }
       }
@@ -266,7 +266,7 @@ void tos_writerelocs(struct GlobalVars *gv,FILE *f,
           if (rel->rtype!=R_ABS || ri->bpos!=0 || ri->bsiz!=32) {
             if (rel->rtype==R_ABS && (ri->bpos!=0 || ri->bsiz!=32))
               error(32,fff_ataritos.tname,reloc_name[rel->rtype],
-                    (int)ri->bpos,(int)ri->bsiz,(unsigned long long)ri->mask,
+                    (int)ri->bpos,(int)ri->bsiz,mtaddr(gv,ri->mask),
                     sections[i]->name,rel->offset);
             continue;
           }

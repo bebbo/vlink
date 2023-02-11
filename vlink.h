@@ -1,8 +1,8 @@
-/* $VER: vlink vlink.h V0.16h (09.03.21)
+/* $VER: vlink vlink.h V0.17a (26.06.22)
  *
  * This file is part of vlink, a portable linker for multiple
  * object formats.
- * Copyright (c) 1997-2021  Frank Wille
+ * Copyright (c) 1997-2022  Frank Wille
  */
 
 #include <stdlib.h>
@@ -69,7 +69,7 @@ typedef int bool;
 
 #define MAXLEN 256		/* maximum length for symbols and buffers */
 #define FNAMEBUFSIZE 1024       /* buffer size for file names */
-#define MAX_FWALIGN 8192        /* max. aligment, when writing target file */
+#define MAX_FWALIGN 8192        /* max. alignment, when writing target file */
 
 /* macros */
 #define SECNAMECMP(s1,s2)       ((s1)->hash==(s2)->hash ? \
@@ -196,7 +196,7 @@ struct Section {
   struct LinkedSection *lnksec; /* ptr to joined sections */
   const char *name;             /* section's name, e.g. .text, .data, ... */
   unsigned long hash;           /* section name's hash code */
-  uint32_t id;                  /* unique section id - target dependant */
+  uint32_t id;                  /* unique section id - target dependent */
   uint8_t type;                 /* type: code, data, bss */
   uint8_t flags;
   uint8_t protection;           /* readable, writable, executable, ... */
@@ -229,7 +229,7 @@ struct Section {
 #define SF_SMALLDATA       0x04 /* section is referenced base-relative */
 #define SF_LINKONCE        0x08 /* link only a single section with this name */
 #define SF_REFERENCED      0x10 /* section was referenced */
-#define SF_PORTABLE_MASK   0x1f /* mask for target-independant flags */
+#define SF_PORTABLE_MASK   0x1f /* mask for target-independent flags */
 /* target specific section flags: amiga */
 #define SF_EHFPPC          0x20  /* target ehf: section contains PPC code */
 
@@ -263,7 +263,8 @@ struct Reloc {                  /* relocation information */
     struct Section *ptr;        /* base addr of this sect. has to be added */
     struct LinkedSection *lnk;  /* base addr of joined sections */
     struct Symbol *symbol;      /* symbol-pointer, if x-ref. was resolved */
-    struct SymbolMask *smask;	/* ORed feat.mask of all xrefs with this name */
+    uint32_t smask;             /* symbol name's feat.mask (!OUF_LINKED) */
+    struct SymbolMask *cmask;	/* ORed feat.mask of all xrefs with this name */
   } relocsect;
   unsigned long offset;         /* section-offset of relocation */
   lword addend;                 /* add this to relocation value */
@@ -304,7 +305,8 @@ struct Reloc {                  /* relocation information */
 
 /* Reloc flags */
 #define RELF_WEAK 1             /* reference is weak and defaults to 0 */
-#define RELF_MASKED 2           /* reference uses a SymbolMask */
+#define RELF_SMASK 2            /* reference has an smask (!OUF_LINKED) */
+#define RELF_CMASK 4            /* reference has a cmask-pointer (LINKED!) */
 #define RELF_INTERNAL 0x10      /* linker-internal relocation, not exported */
 #define RELF_PLT 0x40           /* dynamic PLT relocation */
 #define RELF_DYN 0x80           /* other dynamic relocation */
@@ -426,7 +428,7 @@ struct LinkedSection {          /* linked sections of same type and name */
   unsigned long copybase;       /* section's virtual copy address (destmem) */
   unsigned long base;           /* the section's virtual address (relocmem) */
   unsigned long size;           /* the section's size in bytes */
-  unsigned long filesize;       /* size in file, rest ist filled with '0' */
+  unsigned long filesize;       /* size in file, rest is filled with '0' */
   unsigned long gapsize;        /* bytes to fill until next section */
   struct list sections;         /* s. which have been linked together */
   uint8_t *data;                /* the section's contents */
@@ -515,7 +517,7 @@ struct GlobalVars {
   uint8_t bits_per_taddr;       /* bits in target address (taddr, lword) */
   uint8_t tbytes_per_taddr;     /* target bytes in a target address word */
   char masked_symbols;          /* symbols may use a feature-mask */
-  char reserved[1];
+  bool fail_on_warning;         /* return with error code from warnings */
   FILE *map_file;               /* map file */
   FILE *trace_file;             /* linker trace output */
   FILE *vice_file;              /* label-file for the VICE emulator */
@@ -538,6 +540,7 @@ struct GlobalVars {
   bool errflag;                 /* if true, don't create output file */
   int maxerrors;                /* # of errors to display, before aborting */
   int errcnt;                   /* number of errors displayed */
+  int warncnt;                  /* number of warnings displayed */
   int returncode;               /* return code for exit() */
 
   /* linking process */
@@ -557,7 +560,7 @@ struct GlobalVars {
   struct Section *dummysec;     /* contains nothing, has base addr. 0 */
   struct Phdr *phdrlist;        /* list of defined PHDRs (ELF only) */
   uint16_t filldata;            /* used to fill alignment-gaps */
-  int8_t endianess;             /* linking in big endian mode (1), */
+  int8_t endianness;             /* linking in big endian mode (1), */
                                 /*  little endian (0), undefined (-1) */
   uint8_t collect_ctors_type;   /* method to collect constructors */
   const char *collect_ctors_secname; /* default section name for construct. */
@@ -580,7 +583,7 @@ struct GlobalVars {
 #define TRSYMHTABSIZE 0x40
 #define DEFAULT_INTERP_PATH "/usr/lib/ld.so.1"
 
-/* endianess */
+/* endianness */
 #define _LITTLE_ENDIAN_ (0)
 #define _BIG_ENDIAN_ (1)
 
@@ -660,7 +663,7 @@ struct FFFuncs {                /* file format specific functions and data */
   uint32_t id;                  /* general purpose id (e.g. MID for a.out) */
   uint8_t rtab_format;          /* reloc-table format (GV.reloctab_format) */
   uint8_t rtab_mask;            /* mask of allowed reloc-table formats */
-  int8_t endianess;             /* 1=bigEndian, 0=littleEndian */
+  int8_t endianness;             /* 1=bigEndian, 0=littleEndian */
   int8_t addr_bits;             /* bits in a target address (16, 32, 64) */
   uint8_t ptr_alignment;        /* minimum alignment for pointers */
   uint32_t flags;               /* general and target-family specific flags */
@@ -765,7 +768,7 @@ char *mapfile(const char *);
 const char *base_name(const char *);
 char *check_name(char *);
 bool checkrange(lword,bool,int);
-int8_t host_endianess(void);
+int8_t host_endianness(void);
 uint16_t swap16(uint16_t);
 uint32_t swap32(uint32_t);
 uint64_t swap64(uint64_t);
@@ -813,6 +816,10 @@ void add_symnames(struct SymNames **,const char *,lword);
 
 #define listempty(x) ((x)->first->next==NULL)
 #define makemask(x) ((lword)(1LL<<(x))-1)
+#define mtaddr(gv,x) (unsigned long long)((x)&((lword)(1LL<<(gv)->bits_per_taddr)-1))
+#define abstaddr(x) (unsigned long long)((x)<0?-(x):(x))
+#define sgnchar(x) ((x)<0?'-':'+')
+#define optsgnstr(x) ((x)<0?"-":"")
 
 /* errors.c */
 void disable_warning(int);
@@ -887,7 +894,7 @@ struct Symbol *findlnksymbol(struct GlobalVars *,const char *);
 void fixlnksymbols(struct GlobalVars *,struct LinkedSection *);
 struct Symbol *find_any_symbol(struct GlobalVars *,
                                struct Section *,const char *);
-void reenter_global_objsyms(struct GlobalVars *,struct ObjectUnit *);
+void pull_objunit(struct GlobalVars *,struct ObjectUnit *);
 struct Section *getinpsecoffs(struct LinkedSection *,unsigned long,
                               unsigned long *);
 struct RelocInsert *initRelocInsert(struct RelocInsert *,
@@ -1147,6 +1154,7 @@ extern struct FFFuncs fff_ataricom;
 #endif
 #if defined(BBC)
 extern struct FFFuncs fff_bbc;
+extern struct FFFuncs fff_bbc2;
 #endif
 #if defined(CBMPRG)
 extern struct FFFuncs fff_cbmprg;

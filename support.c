@@ -1,8 +1,8 @@
-/* $VER: vlink support.c V0.16h (10.03.21)
+/* $VER: vlink support.c V0.17a (17.04.22)
  *
  * This file is part of vlink, a portable linker for multiple
  * object formats.
- * Copyright (c) 1997-2021  Frank Wille
+ * Copyright (c) 1997-2022  Frank Wille
  */
 
 
@@ -163,15 +163,16 @@ int stricmp(const char *str1,const char *str2)
 
 
 static size_t filesize(FILE *fp,const char *name)
+/* return file size or 0 on error, file is at start of stream afterwards */
 {
-  /* somebody knows a better way to determine file size in ANSI C? */
-  long oldpos,size;
+  long size;
 
-  if ((oldpos = ftell(fp)) >= 0)
-    if (fseek(fp,0,SEEK_END) >= 0)
-      if ((size = ftell(fp)) >= 0)
-        if (fseek(fp,oldpos,SEEK_SET) >= 0)
-          return (size_t)size;
+  if (fgetc(fp) == EOF)  /* workaround for strange files or directories */
+    return 0;
+  if (fseek(fp,0,SEEK_END) >= 0)
+    if ((size = ftell(fp)) >= 0)
+      if (fseek(fp,0,SEEK_SET) >= 0)
+        return (size_t)size;
   fclose(fp);
   error(7,name);  /* read error - doesn't return */
   return 0;
@@ -247,7 +248,7 @@ bool checkrange(lword val,bool sign,int size)
 }
 
 
-int8_t host_endianess(void)
+int8_t host_endianness(void)
 {
   static uint32_t x = 0x01020304;
 
@@ -701,7 +702,7 @@ void fwritetbyte(struct GlobalVars *gv,FILE *fp,lword w)
 
   if (bpb > 16*sizeof(uint8_t))
     ierror("fwritetbyte(): bpb>128 (%d)",bpb);
-  writereloc(gv->endianess,buf,0,bpb,w);
+  writereloc(gv->endianness,buf,0,bpb,w);
   fwritex(fp,buf,(bpb+7)/8);
 }
 
